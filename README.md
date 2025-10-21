@@ -3,12 +3,16 @@
 Interfaces to Optex FA CD22-15-485M12 sensor via RasPi 5.
 The program provides phone-friendly web interface.
 
-## Build (WSL2 host)
-Need podman and Go.
+## Prerequisite
+WSL2 (host)
+* mDNS is working
+* podman and Go is installed
+* can ssh to host with keys (no password)
 
-Run `./build.sh`.
+RasPi 5 (device)
+* Hostname is `dist-sensor.local`
+* Podman is installed
 
-## Deploy (Host -> RasPi)
-Need podman.
-
-Run `./deploy.sh`.
+## Deployment
+* Run `./build.sh` to generate container image
+* Run `./deploy.sh` to reload the container image in the device
