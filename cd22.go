@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"go.bug.st/serial"
 )
@@ -23,6 +24,8 @@ const (
 	ERR_INVALID_COMMAND = 0x05
 	ERR_INVALID_PARAM   = 0x06
 	ERR_OUT_OF_RANGE    = 0x07
+
+	SEND_TIMEOUT = 50 * time.Millisecond
 )
 
 type CD22 struct {
@@ -36,6 +39,10 @@ func NewCD22(portName string, baudRate int) (*CD22, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = p.SetReadTimeout(SEND_TIMEOUT)
+	if err != nil {
+		return nil, err
+	}
 	return &CD22{port: p}, nil
 }
 
@@ -43,15 +50,15 @@ func (dev *CD22) Send(command byte, data uint16) (uint16, error) {
 	dev.portMu.Lock()
 	defer dev.portMu.Unlock()
 
-	// Send command
-	if err := dev.writeAll(buildFrame(command, data)); err != nil {
+	deadline := time.Now().Add(SEND_TIMEOUT)
+
+	if err := dev.writeAll(buildFrame(command, data), deadline); err != nil {
 		return 0, err
 	}
 
-	// Read response (6 bytes: STX + type + data1 + data2 + ETX + BCC)
-	buf, err := dev.readAll(6)
+	buf, err := dev.readAll(6, deadline)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("read response: %w", err)
 	}
 	data, err = parseResponse(buf)
 	if err != nil {
@@ -60,9 +67,12 @@ func (dev *CD22) Send(command byte, data uint16) (uint16, error) {
 	return data, nil
 }
 
-func (dev *CD22) writeAll(data []byte) error {
+func (dev *CD22) writeAll(data []byte, deadline time.Time) error {
 	total := 0
 	for total < len(data) {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("write timeout after %d/%d bytes", total, len(data))
+		}
 		n, err := dev.port.Write(data[total:])
 		if err != nil {
 			return fmt.Errorf("write failed: %w", err)
@@ -72,10 +82,13 @@ func (dev *CD22) writeAll(data []byte) error {
 	return nil
 }
 
-func (dev *CD22) readAll(n int) ([]byte, error) {
+func (dev *CD22) readAll(n int, deadline time.Time) ([]byte, error) {
 	buf := make([]byte, n)
 	total := 0
 	for total < n {
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("read timeout after %d/%d bytes", total, n)
+		}
 		nRead, err := dev.port.Read(buf[total:])
 		if err != nil {
 			return nil, fmt.Errorf("read failed: %w", err)
@@ -122,12 +135,14 @@ func parseResponse(frame []byte) (uint16, error) {
 	data1 := frame[2]
 	data2 := frame[3]
 
-	if responseType == ACK {
+	switch responseType {
+	case ACK:
 		return (uint16(data1) << 8) | uint16(data2), nil
-	} else if responseType == NAK {
+	case NAK:
 		return 0, fmt.Errorf("device error: %s", deviceErrorToString(data1))
+	default:
+		return 0, fmt.Errorf("invalid response type: %02X", responseType)
 	}
-	return 0, fmt.Errorf("invalid response type: %02X", responseType)
 }
 
 func deviceErrorToString(errCode byte) string {

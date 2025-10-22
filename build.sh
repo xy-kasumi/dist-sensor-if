@@ -17,6 +17,7 @@ echo "==> Building container image..."
 podman build --platform linux/arm64 -t $IMAGE_NAME:latest .
 
 echo "==> Saving image to ${OUTPUT_TAR}..."
+rm -f $OUTPUT_TAR
 podman save $IMAGE_NAME:latest -o $OUTPUT_TAR
 
 echo "==> Build complete!"
