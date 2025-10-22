@@ -18,7 +18,7 @@
             </button>
 
             <div v-if="distance !== null" style="margin-top: 20px; font-size: 18px; color: green;">
-                Distance: {{ distance }} μm
+                Distance: {{ distance.toFixed(3) }} mm
             </div>
 
             <div v-if="error" style="margin-top: 20px; font-size: 18px; color: red;">

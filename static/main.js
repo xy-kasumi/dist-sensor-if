@@ -27,7 +27,11 @@ createApp({
 
                 if (result.ok) {
                     const sint16 = result.data > 32767 ? result.data - 65536 : result.data;
-                    this.distance = sint16;
+                    if (sint16 > 10000) {
+                        this.error = 'Out of range';
+                    } else {
+                        this.distance = sint16 * 1e-3;
+                    }
                 } else {
                     this.error = result.error || 'Unknown error';
                 }
