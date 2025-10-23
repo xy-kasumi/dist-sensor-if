@@ -64,8 +64,16 @@ createApp({
             } catch (error) {
                 this.error = `Device error: ${error.message}`;
             }
-            await sleep(100);
+            await sleep(50);
         }
+    },
+    computed: {
+        delta() {
+            if (this.minDist === null || this.maxDist === null) {
+                return null;
+            }
+            return this.maxDist - this.minDist;
+        },
     },
     methods: {
         start() {
