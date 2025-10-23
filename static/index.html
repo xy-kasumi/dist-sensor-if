@@ -4,25 +4,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distance Sensor Interface</title>
+    <title>dist-sensor.local</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <style>
+        .error {
+            color: red
+        }
+
+        * {
+            font-size: 120%;
+        }
+    </style>
 </head>
 
 <body>
     <div id="app">
-        <div style="padding: 20px; font-family: Arial, sans-serif;">
-            <h1>Distance Sensor Interface</h1>
-
-            <button @click="readDistance" :disabled="loading"
-                style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
-                {{ loading ? 'Reading...' : 'Read' }}
-            </button>
-
-            <div v-if="distance !== null" style="margin-top: 20px; font-size: 18px; color: green;">
-                Distance: {{ distance.toFixed(3) }} mm
+        <div>
+            <div v-if="error" class="error">
+                <label>error</label>{{ error }}
             </div>
 
-            <div v-if="error" style="margin-top: 20px; font-size: 18px; color: red;">
-                Error: {{ error }}
+            <div v-if="distance !== null">
+                <label>curr</label>{{ distance.toFixed(3) }} mm
+            </div>
+
+            <button @click="start" v-if="!running">START</button>
+            <button @click="stop" v-if="running">STOP</button>
+
+            <div v-if="minDist !== null">
+                <label>min</label>{{ minDist.toFixed(3) }} mm
+            </div>
+            <div v-if="maxDist !== null">
+                <label>max</label>{{ maxDist.toFixed(3) }} mm
             </div>
         </div>
     </div>
